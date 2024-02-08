@@ -17,7 +17,7 @@ type ProviderConfig = { instance: PersistenceProvider, signals: Set<string> }
  */
 @Injectable()
 export class SignalBucket implements OnDestroy {
-  protected defaultPersistance = LocalStoragePersistence;
+  protected defaultPersistance: Type<PersistenceProvider> = LocalStoragePersistence;
   protected prefix = '';
   private persistenceProviders = new Map<Type<PersistenceProvider>, ProviderConfig>();
   private signalNodes = new Map<string, SignalNode<any>>();
