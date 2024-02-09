@@ -1,10 +1,11 @@
 {
-  "name": "ngx-simple-serializer",
-  "version": "0.0.1",
+  "name": "ngx-signal-buckets",
+  "version": "1.0.0",
   "peerDependencies": {
     "@angular/common": "^17.1.0",
     "@angular/core": "^17.1.0",
     "mutative": "^1.0.3",
+    "ngx-simple-serializer": ">0.0.1",
     "rxjs": ">7.0.0"
   },
   "dependencies": {

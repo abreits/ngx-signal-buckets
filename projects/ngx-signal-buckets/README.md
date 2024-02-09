@@ -25,7 +25,7 @@ class LoginComponent {
 // Example of a signal bucket
 @Injectable({ providedIn: 'root' })
 class MySignalBucket extends SignalBucket {
-  defaultPersistence = MyCystomPersistence; // optional, defaults to LocalStoragePersistence
+  override protected defaultPersistence = MyCystomPersistence; // optional, defaults to LocalStoragePersistence
 
   // list of persisted signals is defined and initialized here
   property1 = this.persistedSignal('initialValue', 'id');
