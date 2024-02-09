@@ -1,28 +1,27 @@
-import { Injectable, Injector, OnDestroy, Type, WritableSignal, signal } from '@angular/core';
+import { Injectable, Injector, Type, WritableSignal, signal } from '@angular/core';
 import { SIGNAL, SignalGetter, SignalNode, signalSetFn } from '@angular/core/primitives/signals';
 import { toSignal } from '@angular/core/rxjs-interop';
 
 import { deserialize, serialize } from 'ngx-simple-serializer';
 import { create } from 'mutative';
-import { Observable, PartialObserver, Subject, Subscription, filter, from, map, mergeAll, mergeMap, tap } from 'rxjs';
+import { PartialObserver, filter, from, map, mergeMap, tap } from 'rxjs';
 
 import { LocalStoragePersistence } from './persistence-provider';
 import { PersistenceProvider, SerializedSignal, persistedSignalOptions } from './types';
 
 
-type ProviderConfig = { instance: PersistenceProvider, signals: Set<string> }
-
+type ProviderConfig = { instance: PersistenceProvider, signalIds: Set<string> }
 
 /**
  * Contains multiple `persistedSignals` that are persisted to `PersistenceProviders` as key-value pairs
  */
 @Injectable()
-export class SignalBucket implements OnDestroy {
-  protected defaultPersistance: Type<PersistenceProvider> = LocalStoragePersistence;
+export class SignalBucket {
+  protected defaultPersistence: Type<PersistenceProvider> = LocalStoragePersistence;
   protected prefix = '';
   private persistenceProviders = new Map<Type<PersistenceProvider>, ProviderConfig>();
   private signalNodes = new Map<string, SignalNode<any>>();
-  private receiveSignalSubscription?: Subscription;
+  private initialized = false;
 
   constructor(
     private injector: Injector
@@ -33,30 +32,17 @@ export class SignalBucket implements OnDestroy {
    * Calls `complete()` after updating all persisted values
    */
   initialize(completeOrObserver?: (() => void) | PartialObserver<any>) {
+    if (this.initialized) {
+      throw new Error('SignalBucket already initialized, initialize should only be called once');
+    }
     if (typeof completeOrObserver === 'function') {
       completeOrObserver = { complete: completeOrObserver };
     }
-    // collect and process incoming receiveSignal$ updates from the PersistenceProviders
-    const receiveSignalProviders$ = new Subject<Observable<SerializedSignal>>();
-    this.receiveSignalSubscription = receiveSignalProviders$.pipe(
-      mergeAll(),
-      tap(this.setSerializedValue)
-    ).subscribe();
-
-    // initialize PersistenceProviders used by the persistedSignal properties
     from(this.persistenceProviders.values()).pipe(
-      tap(persistenceProvider => {
-        if (persistenceProvider.instance.receiveSignal$) {
-          receiveSignalProviders$.next(persistenceProvider.instance.receiveSignal$);
-        }
-      }),
-      mergeMap(persistenceProvider => persistenceProvider.instance.initialize(persistenceProvider.signals.values())),
+      mergeMap(persistenceProvider => persistenceProvider.instance.initialize(persistenceProvider.signalIds.values())),
       tap(this.setSerializedValue)
     ).subscribe(completeOrObserver);
-  }
-
-  ngOnDestroy(): void {
-    this.receiveSignalSubscription?.unsubscribe();
+    this.initialized = true;
   }
 
   /**
@@ -71,25 +57,21 @@ export class SignalBucket implements OnDestroy {
   persistedSignal<T>(initialValue: T, options: persistedSignalOptions): WritableSignal<T>;
   persistedSignal<T>(initialValue: T, idOrOptions: string | persistedSignalOptions): WritableSignal<T> {
     let id: string;
-    let persistenceProvider: Type<PersistenceProvider> | undefined;
-
+    let persistenceClass: Type<PersistenceProvider> | undefined;
     if (typeof idOrOptions === 'string') {
       id = idOrOptions;
     } else {
       id = idOrOptions.id;
-      persistenceProvider = idOrOptions.persistenceProvider;
+      persistenceClass = idOrOptions.persistenceProvider;
     }
-
     if (this.signalNodes.has(id)) {
-      throw new Error(`SignalBucket contains duplicate signal id: ${id}`);
+      throw new Error(`SignalBucket contains duplicate persistedSignal id: ${id}`);
     }
-
-    const provider = this.getProviderConfig(persistenceProvider);
-
+    const providerConfig = this.getProviderConfig(persistenceClass);
     let persistedSignal: SignalGetter<T> & WritableSignal<T>;
-    if (provider.instance.receiveSignal$) {
+    if (providerConfig.instance.receiveSignal$) {
       // process external signal updates from this observable if it exists
-      const externalValue$ = provider.instance.receiveSignal$.pipe(
+      const externalValue$ = providerConfig.instance.receiveSignal$.pipe(
         filter(entry => entry.id === id),
         map(entry => deserialize(entry.serializedValue) as T)
       );
@@ -97,29 +79,27 @@ export class SignalBucket implements OnDestroy {
     } else {
       persistedSignal = signal(initialValue) as SignalGetter<T> & WritableSignal<T>;
     }
-
     const signalNode = persistedSignal[SIGNAL];
-    provider.signals.add(id);
+    providerConfig.signalIds.add(id);
     this.signalNodes.set(id, signalNode);
-
     persistedSignal.set = (value: T) => {
-      this.persistValue(id, value, signalNode, provider.instance);
+      this.persistValue(id, value, signalNode, providerConfig.instance);
     };
     persistedSignal.update = (updateFunction: (value: T) => void) => {
       const updatedValue = create(signalNode.value, updateFunction, { mark: () => 'immutable' });
-      this.persistValue(id, updatedValue, signalNode, provider.instance);
+      this.persistValue(id, updatedValue, signalNode, providerConfig.instance);
     };
     return persistedSignal;
   }
 
-  private getProviderConfig(persistenceProvider: Type<PersistenceProvider> = this.defaultPersistance): ProviderConfig {
-    let provider = this.persistenceProviders.get(persistenceProvider);
+  private getProviderConfig(persistenceClass: Type<PersistenceProvider> = this.defaultPersistence): ProviderConfig {
+    let provider = this.persistenceProviders.get(persistenceClass);
     if (!provider) {
       provider = {
-        instance: this.injector.get(persistenceProvider),
-        signals: new Set<string>()
+        instance: this.injector.get(persistenceClass),
+        signalIds: new Set<string>()
       };
-      this.persistenceProviders.set(persistenceProvider, provider);
+      this.persistenceProviders.set(persistenceClass, provider);
     }
     return provider;
   }
@@ -131,10 +111,10 @@ export class SignalBucket implements OnDestroy {
     }
   };
 
-  private persistValue(id: string, value: any, signalNode: SignalNode<any>, instance: PersistenceProvider) {
+  private persistValue(id: string, value: any, signalNode: SignalNode<any>, persistenceProvider: PersistenceProvider) {
     const serializedValue = serialize(value);
-    if (instance.persistValue) {
-      const persist$ = instance.persistValue({ id, serializedValue });
+    if (persistenceProvider.persistValue) {
+      const persist$ = persistenceProvider.persistValue({ id, serializedValue });
       if (persist$) {
         persist$.subscribe(persistedValue => {
           value = deserialize(persistedValue);
@@ -144,6 +124,6 @@ export class SignalBucket implements OnDestroy {
         signalSetFn(signalNode, value);
       }
     }
-    instance.sendSignal$?.next({ id, serializedValue });
+    persistenceProvider.sendSignal$?.next({ id, serializedValue });
   }
 }

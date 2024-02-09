@@ -51,7 +51,7 @@ class ErrorStoragePersistence implements PersistenceProvider {
 
 @Injectable({ providedIn: 'root' })
 class EmptySignalBucket extends SignalBucket {
-  protected override defaultPersistance = EmptyStoragePersistence;
+  protected override defaultPersistence = EmptyStoragePersistence;
   property1 = this.persistedSignal('initialValue', 'property1Id');
 }
 
@@ -62,7 +62,7 @@ class SyncSignalBucket extends SignalBucket {
 
 @Injectable({ providedIn: 'root' })
 class ErrorSignalBucket extends SignalBucket {
-  protected override defaultPersistance = ErrorStoragePersistence;
+  protected override defaultPersistence = ErrorStoragePersistence;
   property1 = this.persistedSignal('initialValue', 'property1Id');
 }
 
@@ -84,7 +84,7 @@ class DuplicateIdSignalBucket extends SignalBucket {
 
 @Injectable({ providedIn: 'root' })
 class AsyncPersistValueSignalBucket extends SignalBucket {
-  override defaultPersistance = AsyncPersistValueLocalStoragePersistence;
+  override defaultPersistence = AsyncPersistValueLocalStoragePersistence;
   property1 = this.persistedSignal('initialValue', 'property1Id');
 }
 
@@ -108,12 +108,12 @@ describe('SignalBucket', () => {
       expect(service.property1()).toBe('initialValue');
     });
 
-    it('should change the value of a persistedSignal when a persisted value is available ', () => {
+    it('should throw an error if called more than once', () => {
       const service = TestBed.inject(SyncSignalBucket);
       localStorage.setItem('property1Id', '"persistedValue"');
 
       service.initialize();
-      expect(service.property1()).toBe('persistedValue');
+      expect(() => service.initialize()).toThrowError('SignalBucket already initialized, initialize should only be called once');
     });
 
     it('should call the supplied complete() function after initialization is complete, sync PersistenceProviders', (done) => {
@@ -161,7 +161,7 @@ describe('SignalBucket', () => {
     });
 
     it('should throw an error if the same property id is used multiple times', () => {
-      expect(() => TestBed.inject(DuplicateIdSignalBucket)).toThrowError('SignalBucket contains duplicate signal id: property1Id');
+      expect(() => TestBed.inject(DuplicateIdSignalBucket)).toThrowError('SignalBucket contains duplicate persistedSignal id: property1Id');
     });
 
     it('should pass subscribe() errors', (done) => {
@@ -181,9 +181,15 @@ describe('SignalBucket', () => {
     it('should update immediately if persistValue(...) does not return an observable', () => {
       const service = TestBed.inject(SyncSignalBucket);
 
+      // test the set method of the signal
       service.property1.set('secondValue');
       expect(service.property1()).toBe('secondValue');
       expect(localStorage.getItem('property1Id')).toBe('"secondValue"');
+
+      //also test the update method of the signal
+      service.property1.update(currentValue => currentValue + 'Updated');
+      expect(service.property1()).toBe('secondValueUpdated');
+      expect(localStorage.getItem('property1Id')).toBe('"secondValueUpdated"');
     });
 
     it('should update to the value returned by the observable if persistValue(...) returns an observable', fakeAsync(() => {

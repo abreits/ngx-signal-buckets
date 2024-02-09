@@ -65,3 +65,14 @@ The ngx-signal-buckets provide a simple solution to persist signal values with a
 It works close together with the [ngx-simple-serializer](https://github.com/abreits/ngx-simple-serializer) for the serialization and deserialization of classes and values.
 
 The signals inside of the signal buckets can also use an opinionated `update` method that internally uses [mutative](https://github.com/unadlib/mutative) to generate distinct updates.
+
+## SignalBucket
+
+TODO: describe how to use it: 
+Create service that extends the root SignalBucket service and define properties that are initialized using the persistedSignal() method
+
+## PersistenceProviders
+
+TODO: describe the ones default available (localstorage, sessionstorage and server)
+
+describe how to create your own and which versions there are.

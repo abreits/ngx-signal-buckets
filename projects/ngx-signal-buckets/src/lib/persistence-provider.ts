@@ -47,6 +47,7 @@ export class SessionStoragePersistence implements PersistenceProvider {
 }
 
 // example for persistence on an external server
+@Injectable({ providedIn: 'root' })
 export class ServerPersistence implements PersistenceProvider {
   name = 'ServerPersist';
   getIdValuesUrl = 'https://get.persisted.values.of.supplied.ids.url';
