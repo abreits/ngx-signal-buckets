@@ -4,13 +4,14 @@ import { toSignal } from '@angular/core/rxjs-interop';
 
 import { deserialize, serialize } from 'ngx-simple-serializer';
 import { create } from 'mutative';
-import { Observable, Subject, Subscription, filter, from, map, mergeAll, mergeMap, tap } from 'rxjs';
+import { Observable, PartialObserver, Subject, Subscription, filter, from, map, mergeAll, mergeMap, tap } from 'rxjs';
 
 import { LocalStoragePersistence } from './persistence-provider';
 import { PersistenceProvider, SerializedSignal, persistedSignalOptions } from './types';
 
 
 type ProviderConfig = { instance: PersistenceProvider, signals: Set<string> }
+
 
 /**
  * Contains multiple `persistedSignals` that are persisted to `PersistenceProviders` as key-value pairs
@@ -31,7 +32,10 @@ export class SignalBucket implements OnDestroy {
    * Updates the persistedSignal properties with their current persisted values.
    * Calls `complete()` after updating all persisted values
    */
-  initialize(complete?: () => void) {
+  initialize(completeOrObserver?: (() => void) | PartialObserver<any>) {
+    if (typeof completeOrObserver === 'function') {
+      completeOrObserver = { complete: completeOrObserver };
+    }
     // collect and process incoming receiveSignal$ updates from the PersistenceProviders
     const receiveSignalProviders$ = new Subject<Observable<SerializedSignal>>();
     this.receiveSignalSubscription = receiveSignalProviders$.pipe(
@@ -48,7 +52,7 @@ export class SignalBucket implements OnDestroy {
       }),
       mergeMap(persistenceProvider => persistenceProvider.instance.initialize(persistenceProvider.signals.values())),
       tap(this.setSerializedValue)
-    ).subscribe({ complete });
+    ).subscribe(completeOrObserver);
   }
 
   ngOnDestroy(): void {

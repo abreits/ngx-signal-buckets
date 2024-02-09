@@ -41,6 +41,15 @@ class EmptyStoragePersistence implements PersistenceProvider {
 }
 
 @Injectable({ providedIn: 'root' })
+class ErrorStoragePersistence implements PersistenceProvider {
+  initialize() {
+    return new Observable(() => {
+      throw new Error('persistenceProvider initialize error');
+    }) as any;
+  }
+}
+
+@Injectable({ providedIn: 'root' })
 class EmptySignalBucket extends SignalBucket {
   protected override defaultPersistance = EmptyStoragePersistence;
   property1 = this.persistedSignal('initialValue', 'property1Id');
@@ -48,6 +57,12 @@ class EmptySignalBucket extends SignalBucket {
 
 @Injectable({ providedIn: 'root' })
 class SyncSignalBucket extends SignalBucket {
+  property1 = this.persistedSignal('initialValue', 'property1Id');
+}
+
+@Injectable({ providedIn: 'root' })
+class ErrorSignalBucket extends SignalBucket {
+  protected override defaultPersistance = ErrorStoragePersistence;
   property1 = this.persistedSignal('initialValue', 'property1Id');
 }
 
@@ -111,6 +126,18 @@ describe('SignalBucket', () => {
       });
     });
 
+    it('should call the supplied complete() function after initialization is complete, sync PersistenceProviders', (done) => {
+      const service = TestBed.inject(SyncSignalBucket);
+      localStorage.setItem('property1Id', '"persistedValue"');
+
+      service.initialize({
+        complete: () => {
+          expect(service.property1()).toBe('persistedValue');
+          done();
+        }
+      });
+    });
+
     it('should call the supplied complete() function after initialization is complete, sync and async PersistenceProviders', (done) => {
       const service = TestBed.inject(SyncAsyncSignalBucket);
       localStorage.setItem('property1Id', '"persistedValue"');
@@ -135,6 +162,18 @@ describe('SignalBucket', () => {
 
     it('should throw an error if the same property id is used multiple times', () => {
       expect(() => TestBed.inject(DuplicateIdSignalBucket)).toThrowError('SignalBucket contains duplicate signal id: property1Id');
+    });
+
+    it('should pass subscribe() errors', (done) => {
+      const service = TestBed.inject(ErrorSignalBucket);
+      localStorage.setItem('property1Id', '"persistedValue"');
+
+      service.initialize({
+        error: err => {
+          expect(err).toEqual(new Error('persistenceProvider initialize error'));
+          done();
+        }
+      });
     });
   });
 
@@ -169,7 +208,7 @@ describe('SignalBucket', () => {
       const persistenceProvider = TestBed.inject(EmptyStoragePersistence) as PersistenceProvider;
       persistenceProvider.sendSignal$ = new Subject();
       persistenceProvider.sendSignal$.subscribe(serializedSignal => {
-        expect(serializedSignal).toEqual({id: 'property1Id', serializedValue: '"secondValue"'});
+        expect(serializedSignal).toEqual({ id: 'property1Id', serializedValue: '"secondValue"' });
       });
 
       const service = TestBed.inject(EmptySignalBucket);
@@ -185,7 +224,7 @@ describe('SignalBucket', () => {
 
       const service = TestBed.inject(EmptySignalBucket);
 
-      receiveSignal$.next({id: 'property1Id', serializedValue: '"secondValue"'});
+      receiveSignal$.next({ id: 'property1Id', serializedValue: '"secondValue"' });
       expect(service.property1()).toBe('secondValue');
     });
   });
