@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 
-import { Observable, delay, map, of } from 'rxjs';
+import { Observable, Subject, delay, map, of } from 'rxjs';
 
 import { SignalBucket } from './signal-bucket';
 import { LocalStoragePersistence } from './persistence-provider';
@@ -166,11 +166,27 @@ describe('SignalBucket', () => {
     });
 
     it('should send updates to sendSignal$ if it exists', () => {
+      const persistenceProvider = TestBed.inject(EmptyStoragePersistence) as PersistenceProvider;
+      persistenceProvider.sendSignal$ = new Subject();
+      persistenceProvider.sendSignal$.subscribe(serializedSignal => {
+        expect(serializedSignal).toEqual({id: 'property1Id', serializedValue: '"secondValue"'});
+      });
 
+      const service = TestBed.inject(EmptySignalBucket);
+
+      service.property1.set('secondValue');
+      expect(service.property1()).toBe('initialValue');
     });
 
     it('should receive updates from receiveSignal$ if it exists', () => {
+      const persistenceProvider = TestBed.inject(EmptyStoragePersistence) as PersistenceProvider;
+      const receiveSignal$ = new Subject<SerializedSignal>();
+      persistenceProvider.receiveSignal$ = receiveSignal$;
 
+      const service = TestBed.inject(EmptySignalBucket);
+
+      receiveSignal$.next({id: 'property1Id', serializedValue: '"secondValue"'});
+      expect(service.property1()).toBe('secondValue');
     });
   });
 });
