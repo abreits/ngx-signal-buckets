@@ -1,7 +1,6 @@
-import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 
-import { Observable, from, switchMap } from 'rxjs';
+import { Observable } from 'rxjs';
 
 import { PersistenceProvider, SerializedSignal } from './types';
 
@@ -43,30 +42,5 @@ export class SessionStoragePersistence implements PersistenceProvider {
 
   persistValue(value: SerializedSignal) {
     sessionStorage.setItem(value.id, value.serializedValue);
-  }
-}
-
-// example for persistence on an external server
-@Injectable({ providedIn: 'root' })
-export class ServerPersistence implements PersistenceProvider {
-  name = 'ServerPersist';
-  getIdValuesUrl = 'https://get.persisted.values.of.supplied.ids.url';
-  setValueUrl = 'https://persist.value.url';
-
-  constructor(
-    protected httpClient: HttpClient
-  ) { }
-
-  initialize(ids: Iterable<string>): Observable<SerializedSignal> {
-    return this.httpClient.post<SerializedSignal[]>(this.getIdValuesUrl, [...ids]).pipe(
-      switchMap(results => from(results))
-      // TODO: handle errors
-    );
-  }
-
-  persistValue(serializedSignal: SerializedSignal) {
-    return this.httpClient.post<string>(this.setValueUrl, serializedSignal).pipe(
-      // TODO: handle errors
-    );
   }
 }

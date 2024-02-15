@@ -1,7 +1,6 @@
-import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 
-import { LocalStoragePersistence, ServerPersistence, SessionStoragePersistence } from './persistence-provider';
+import { LocalStoragePersistence, SessionStoragePersistence } from './persistence-provider';
 
 describe('Local/SessionStoragePersistence', () => {
   [
@@ -91,21 +90,5 @@ describe('Local/SessionStoragePersistence', () => {
         });
       });
     });
-  });
-});
-
-describe('ServerPersistence', () => {
-  beforeEach(() => {
-    localStorage.clear();
-    TestBed.configureTestingModule({
-      imports: [
-        HttpClientTestingModule,
-      ]
-    });
-  });
-
-  it('should be created', () => {
-    const service = TestBed.inject(ServerPersistence);
-    expect(service).toBeTruthy();
   });
 });
