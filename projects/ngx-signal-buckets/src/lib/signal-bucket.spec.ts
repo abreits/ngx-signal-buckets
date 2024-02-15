@@ -5,13 +5,13 @@ import { Observable, Subject, delay, map, of } from 'rxjs';
 
 import { SignalBucket } from './signal-bucket';
 import { LocalStoragePersistence } from './persistence-provider';
-import { PersistenceProvider, SerializedSignal } from './types';
-import { deserialize, serialize } from 'ngx-simple-serializer';
+import { PersistenceProvider, SignalIdValue } from './types';
+import { serialize } from 'ngx-simple-serializer';
 
 @Injectable({ providedIn: 'root' })
 class AsyncInitializeLocalStoragePersistence extends LocalStoragePersistence {
   // async initialize
-  override initialize(lookupIds: Iterable<string>): Observable<SerializedSignal> {
+  override initialize(lookupIds: Iterable<string>): Observable<SignalIdValue> {
     return super.initialize(lookupIds).pipe(
       delay(1)
     );
@@ -21,12 +21,12 @@ class AsyncInitializeLocalStoragePersistence extends LocalStoragePersistence {
 @Injectable({ providedIn: 'root' })
 class AsyncPersistValueLocalStoragePersistence extends LocalStoragePersistence {
   // async initialize
-  override persistValue(idValuePair: SerializedSignal) {
+  override persistValue(idValuePair: SignalIdValue) {
     return of(idValuePair).pipe(
       delay(1),
       map(idValuePair => {
-        const value = serialize((deserialize(idValuePair.serializedValue) as string) + 'Modified');
-        localStorage.setItem(idValuePair.id, value);
+        const value = (idValuePair.value as string) + 'Modified';
+        localStorage.setItem(idValuePair.id, serialize(value));
         return value;
       })
     );
@@ -214,7 +214,7 @@ describe('SignalBucket', () => {
       const persistenceProvider = TestBed.inject(EmptyStoragePersistence) as PersistenceProvider;
       persistenceProvider.sendSignal$ = new Subject();
       persistenceProvider.sendSignal$.subscribe(serializedSignal => {
-        expect(serializedSignal).toEqual({ id: 'property1Id', serializedValue: '"secondValue"' });
+        expect(serializedSignal).toEqual({ id: 'property1Id', value: 'secondValue' });
       });
 
       const service = TestBed.inject(EmptySignalBucket);
@@ -225,12 +225,12 @@ describe('SignalBucket', () => {
 
     it('should receive updates from receiveSignal$ if it exists', () => {
       const persistenceProvider = TestBed.inject(EmptyStoragePersistence) as PersistenceProvider;
-      const receiveSignal$ = new Subject<SerializedSignal>();
+      const receiveSignal$ = new Subject<SignalIdValue>();
       persistenceProvider.receiveSignal$ = receiveSignal$;
 
       const service = TestBed.inject(EmptySignalBucket);
 
-      receiveSignal$.next({ id: 'property1Id', serializedValue: '"secondValue"' });
+      receiveSignal$.next({ id: 'property1Id', value: 'secondValue' });
       expect(service.property1()).toBe('secondValue');
     });
   });

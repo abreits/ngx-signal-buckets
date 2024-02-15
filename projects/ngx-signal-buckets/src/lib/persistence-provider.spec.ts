@@ -80,12 +80,12 @@ describe('Local/SessionStoragePersistence', () => {
         // this persistence provider works synchronous, so no need to return an observable
         it('should not return a value', () => {
           const service = TestBed.inject(provider);
-          expect(service.persistValue({ id: 'id1', serializedValue: '1' })).toBeUndefined();
+          expect(service.persistValue({ id: 'id1', value: 1 })).toBeUndefined();
         });
 
         it('should persist the serialized value', () => {
           const service = TestBed.inject(provider);
-          service.persistValue({ id: 'id1', serializedValue: '1' });
+          service.persistValue({ id: 'id1', value: 1 });
           expect(storage.getItem('id1')).toBe('1');
         });
       });

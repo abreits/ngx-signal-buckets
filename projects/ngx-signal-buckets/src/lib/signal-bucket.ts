@@ -2,12 +2,11 @@ import { Injectable, Injector, Type, WritableSignal, signal } from '@angular/cor
 import { SIGNAL, SignalGetter, SignalNode, signalSetFn } from '@angular/core/primitives/signals';
 import { toSignal } from '@angular/core/rxjs-interop';
 
-import { deserialize, serialize } from 'ngx-simple-serializer';
 import { create } from 'mutative';
 import { PartialObserver, filter, from, map, mergeMap, tap } from 'rxjs';
 
 import { LocalStoragePersistence } from './persistence-provider';
-import { PersistenceProvider, SerializedSignal, persistedSignalOptions } from './types';
+import { PersistenceProvider, SignalIdValue, persistedSignalOptions } from './types';
 
 
 type ProviderConfig = { instance: PersistenceProvider, signalIds: Set<string> }
@@ -40,7 +39,7 @@ export class SignalBucket {
     }
     from(this.persistenceProviders.values()).pipe(
       mergeMap(persistenceProvider => persistenceProvider.instance.initialize(persistenceProvider.signalIds.values())),
-      tap(this.setSerializedValue)
+      tap(this.setValue)
     ).subscribe(completeOrObserver);
     this.initialized = true;
   }
@@ -73,7 +72,7 @@ export class SignalBucket {
       // process external signal updates from this observable if it exists
       const externalValue$ = providerConfig.instance.receiveSignal$.pipe(
         filter(entry => entry.id === id),
-        map(entry => deserialize(entry.serializedValue) as T)
+        map(entry => entry.value as T)
       );
       persistedSignal = toSignal(externalValue$, { initialValue }) as SignalGetter<T> & WritableSignal<T>;
     } else {
@@ -104,26 +103,25 @@ export class SignalBucket {
     return provider;
   }
 
-  private setSerializedValue = (serializedSignal: SerializedSignal) => {
-    const signalNode = this.signalNodes.get(serializedSignal.id);
+  private setValue = (idValue: SignalIdValue) => {
+    const signalNode = this.signalNodes.get(idValue.id);
     if (signalNode) {
-      signalSetFn(signalNode, deserialize(serializedSignal.serializedValue));
+      signalSetFn(signalNode, idValue.value);
     }
   };
 
   private persistValue(id: string, value: any, signalNode: SignalNode<any>, persistenceProvider: PersistenceProvider) {
-    const serializedValue = serialize(value);
     if (persistenceProvider.persistValue) {
-      const persist$ = persistenceProvider.persistValue({ id, serializedValue });
+      const persist$ = persistenceProvider.persistValue({ id, value });
       if (persist$) {
         persist$.subscribe(persistedValue => {
-          value = deserialize(persistedValue);
+          value = persistedValue;
           signalSetFn(signalNode, value);
         });
       } else {
         signalSetFn(signalNode, value);
       }
     }
-    persistenceProvider.sendSignal$?.next({ id, serializedValue });
+    persistenceProvider.sendSignal$?.next({ id, value });
   }
 }

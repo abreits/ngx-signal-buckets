@@ -1,10 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, OnDestroy } from '@angular/core';
 
-import { Observable, switchMap, from, Subject, map, mergeMap, tap, Subscription } from 'rxjs';
+import { Observable, switchMap, from, Subject, map, Subscription } from 'rxjs';
 import { webSocket } from 'rxjs/webSocket';
 
-import { PersistenceProvider, SerializedSignal } from './types';
+import { PersistenceProvider, SignalIdValue } from './types';
 
 
 // example for persistence on an external server
@@ -17,14 +17,14 @@ export class ServerPersistence implements PersistenceProvider {
     protected httpClient: HttpClient
   ) { }
 
-  initialize(ids: Iterable<string>): Observable<SerializedSignal> {
-    return this.httpClient.post<SerializedSignal[]>(this.getIdValuesUrl, [...ids]).pipe(
+  initialize(ids: Iterable<string>): Observable<SignalIdValue> {
+    return this.httpClient.post<SignalIdValue[]>(this.getIdValuesUrl, [...ids]).pipe(
       switchMap(results => from(results))
       // TODO: handle errors
     );
   }
 
-  persistValue(serializedSignal: SerializedSignal) {
+  persistValue(serializedSignal: SignalIdValue) {
     return this.httpClient.post<string>(this.setValueUrl, serializedSignal).pipe(
       // TODO: handle errors
     );
@@ -54,20 +54,20 @@ export class WebSocketPersistence implements PersistenceProvider, OnDestroy {
     this.subscription.unsubscribe();
   }
 
-  initialize(ids: Iterable<string>): Observable<SerializedSignal> {
-    return this.httpClient.post<SerializedSignal[]>(this.getIdValuesUrl, [...ids]).pipe(
+  initialize(ids: Iterable<string>): Observable<SignalIdValue> {
+    return this.httpClient.post<SignalIdValue[]>(this.getIdValuesUrl, [...ids]).pipe(
       switchMap(results => from(results))
       // TODO: handle errors
     );
   }
 
-  sendSignal$ = new Subject<SerializedSignal>;
+  sendSignal$ = new Subject<SignalIdValue>;
 
   receiveSignal$ = this.webSocket.multiplex(
     () => ({ subscribe: 'persistedSignal' }),
     () => ({ unsubscribe: 'persistedSignal' }),
     (message: any) => message.type === 'persistedSignal'
   ).pipe(
-    map(message => message.content as SerializedSignal)
+    map(message => message.content as SignalIdValue)
   );
 }
