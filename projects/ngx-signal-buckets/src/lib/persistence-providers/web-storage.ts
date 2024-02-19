@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 
 import { Observable } from 'rxjs';
 
-import { PersistenceProvider, SignalIdValue } from './types';
+import { PersistenceProvider, SignalIdValue } from '../types';
 import { deserialize, serialize } from 'ngx-simple-serializer';
 
 

@@ -3,10 +3,10 @@ import { SIGNAL, SignalGetter, SignalNode, signalSetFn } from '@angular/core/pri
 import { toSignal } from '@angular/core/rxjs-interop';
 
 import { create } from 'mutative';
-import { PartialObserver, filter, from, map, mergeMap, tap } from 'rxjs';
+import { Observable, PartialObserver, filter, from, map, mergeMap, tap } from 'rxjs';
 
-import { LocalStoragePersistence } from './persistence-provider';
-import { PersistenceProvider, SignalIdValue, persistedSignalOptions } from './types';
+import { LocalStoragePersistence } from './persistence-providers/web-storage';
+import { PersistenceProvider, SignalIdValue, PersistedSignalOptions } from './types';
 
 
 type ProviderConfig = { instance: PersistenceProvider, signalIds: Set<string> }
@@ -28,20 +28,34 @@ export class SignalBucket {
 
   /**
    * Updates the persistedSignal properties with their current persisted values.
+   * 
+   * Returns Observable that executes the initialization when subscribed.
+   */
+  initialize(): Observable<number>;
+  /**
+   * Updates the persistedSignal properties with their current persisted values.
+   * 
    * Calls `complete()` after updating all persisted values
    */
-  initialize(completeOrObserver?: (() => void) | PartialObserver<any>) {
+  initialize(completeOrObserver: (() => void) | PartialObserver<any>): void;
+  initialize(completeOrObserver?: (() => void) | PartialObserver<any>): Observable<any> | void {
     if (this.initialized) {
       throw new Error('SignalBucket already initialized, initialize should only be called once');
     }
+    this.initialized = true;
     if (typeof completeOrObserver === 'function') {
       completeOrObserver = { complete: completeOrObserver };
     }
-    from(this.persistenceProviders.values()).pipe(
+    const initialize$ = from(this.persistenceProviders.values()).pipe(
       mergeMap(persistenceProvider => persistenceProvider.instance.initialize(persistenceProvider.signalIds.values())),
       tap(this.setValue)
-    ).subscribe(completeOrObserver);
-    this.initialized = true;
+    );
+    if (completeOrObserver) {
+      initialize$.subscribe(completeOrObserver);
+    } else {
+      return initialize$;
+    }
+
   }
 
   /**
@@ -53,8 +67,8 @@ export class SignalBucket {
    * unless another persistence provider is defined in the options.
    */
   persistedSignal<T>(initialValue: T, id: string): WritableSignal<T>;
-  persistedSignal<T>(initialValue: T, options: persistedSignalOptions): WritableSignal<T>;
-  persistedSignal<T>(initialValue: T, idOrOptions: string | persistedSignalOptions): WritableSignal<T> {
+  persistedSignal<T>(initialValue: T, options: PersistedSignalOptions): WritableSignal<T>;
+  persistedSignal<T>(initialValue: T, idOrOptions: string | PersistedSignalOptions): WritableSignal<T> {
     let id: string;
     let persistenceClass: Type<PersistenceProvider> | undefined;
     if (typeof idOrOptions === 'string') {

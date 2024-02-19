@@ -4,7 +4,7 @@ import { Injectable, OnDestroy } from '@angular/core';
 import { Observable, switchMap, from, Subject, map, Subscription, first, mergeMap } from 'rxjs';
 import { webSocket } from 'rxjs/webSocket';
 
-import { PersistenceProvider, SignalIdValue } from './types';
+import { PersistenceProvider, SignalIdValue } from '../types';
 import { deserialize, serialize } from 'ngx-simple-serializer';
 
 
@@ -12,7 +12,7 @@ import { deserialize, serialize } from 'ngx-simple-serializer';
 @Injectable({ providedIn: 'root' })
 export class ServerPersistence implements PersistenceProvider {
   getIdValuesUrl = 'https://get.persisted.values.of.supplied.ids.url';
-  setValueUrl = 'https://persist.value.url';
+  setValueUrl = 'https://persist.id.value.url';
 
   constructor(
     protected httpClient: HttpClient

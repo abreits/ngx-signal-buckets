@@ -3,7 +3,7 @@ import { Observable, Subject } from 'rxjs';
 
 export type SignalIdValue = { id: string, value: any };
 
-export type persistedSignalOptions = { id: string, persistenceProvider?: Type<PersistenceProvider>}
+export type PersistedSignalOptions = { id: string, persistenceProvider?: Type<PersistenceProvider>}
 
 export interface PersistenceProvider {
   /**

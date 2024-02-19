@@ -1,26 +1,16 @@
-# NgxSimpleSerializer
+# ngx-signal-buckets
+
+This is an Angular library created with the Angular cli, see the [ngx-signal-buckets library README](/projects/ngx-signal-buckets/README.md) for more details.
 
 This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 17.1.0.
 
-## Development server
+## Running unit tests with code coverage
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+Run `npm run coverage` to execute the unit tests via [Karma](https://karma-runner.github.io) with code coverage.
 
-## Code scaffolding
+## Build and publish
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
-
-## Build
-
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
-
-## Running unit tests
-
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
-
-## Running end-to-end tests
-
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+Run `npm run build` to build the library. If you have sufficient rights you can use `npm run publish` to publish the library to npm.
 
 ## Further help
 

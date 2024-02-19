@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 
-import { LocalStoragePersistence, SessionStoragePersistence } from './persistence-provider';
+import { LocalStoragePersistence, SessionStoragePersistence } from './web-storage';
 
 describe('Local/SessionStoragePersistence', () => {
   [

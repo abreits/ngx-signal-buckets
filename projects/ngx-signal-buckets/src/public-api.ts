@@ -4,4 +4,4 @@
 
 export * from './lib/types';
 export * from './lib/signal-bucket';
-export * from './lib/persistence-provider';
+export * from './lib/persistence-providers/web-storage';

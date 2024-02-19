@@ -1,10 +1,10 @@
 import { Injectable } from '@angular/core';
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 
-import { Observable, Subject, delay, map, of } from 'rxjs';
+import { Observable, Subject, delay, map, merge, of } from 'rxjs';
 
 import { SignalBucket } from './signal-bucket';
-import { LocalStoragePersistence } from './persistence-provider';
+import { LocalStoragePersistence } from './persistence-providers/web-storage';
 import { PersistenceProvider, SignalIdValue } from './types';
 import { serialize } from 'ngx-simple-serializer';
 
@@ -100,20 +100,79 @@ describe('SignalBucket', () => {
   });
 
   describe('initialize()', () => {
-    it('should keep the value of a persistedSignal when no persisted value is available', () => {
+    it('should keep the value of a persistedSignal when no persisted value is available', (done) => {
       const service = TestBed.inject(SyncSignalBucket);
       expect(service.property1()).toBe('initialValue');
 
-      service.initialize();
-      expect(service.property1()).toBe('initialValue');
+      service.initialize(() => {
+        expect(service.property1()).toBe('initialValue');
+        done();
+      });
     });
 
-    it('should throw an error if called more than once', () => {
+    it('should not return a value if called with parameters', () => {
+      const service = TestBed.inject(SyncSignalBucket);
+      expect(service.property1()).toBe('initialValue');
+
+      expect(service.initialize(() => { })).toBeUndefined();
+    });
+
+    it('should return an observable if called without parameters', () => {
+      const service = TestBed.inject(SyncSignalBucket);
+      expect(service.property1()).toBe('initialValue');
+
+      const observable = service.initialize();
+      expect(observable instanceof Observable).toBeTrue();
+    });
+
+    it('should only initialize after subscribing to the returned observable', (done) => {
       const service = TestBed.inject(SyncSignalBucket);
       localStorage.setItem('property1Id', '"persistedValue"');
 
-      service.initialize();
-      expect(() => service.initialize()).toThrowError('SignalBucket already initialized, initialize should only be called once');
+      const observable$ = service.initialize();
+      expect(observable$ instanceof Observable).toBeTrue();
+      expect(service.property1()).toBe('initialValue');
+      observable$.subscribe({
+        complete: () => {
+          expect(service.property1()).toBe('persistedValue');
+          done();
+        }
+      });
+    });
+
+    it('should be able to wait for completion of all initializations when initializing multiple SignalBuckets', (done) => {
+      const service1 = TestBed.inject(SyncSignalBucket);
+      localStorage.setItem('property1Id', '"persistedValue"');
+      const service2 = TestBed.inject(SyncAsyncSignalBucket);
+      localStorage.setItem('property1Id', '"persistedValue"');
+      localStorage.setItem('property2Id', '"persistedValue2"');
+      localStorage.setItem('property3Id', '"persistedValue3"');
+
+      const observable$ = merge(service1.initialize(), service2.initialize());
+      expect(observable$ instanceof Observable).toBeTrue();
+      expect(service1.property1()).toBe('initialValue');
+      expect(service2.property1()).toBe('initialValue');
+      expect(service2.property2()).toBe('initialValue2');
+      expect(service2.property3()).toBe('initialValue3');
+      observable$.subscribe({
+        complete: () => {
+          expect(service1.property1()).toBe('persistedValue');
+          expect(service2.property1()).toBe('persistedValue');
+          expect(service2.property2()).toBe('persistedValue2');
+          expect(service2.property3()).toBe('persistedValue3');          
+          done();
+        }
+      });
+    });
+
+    it('should throw an error if called more than once', (done) => {
+      const service = TestBed.inject(SyncSignalBucket);
+      localStorage.setItem('property1Id', '"persistedValue"');
+
+      service.initialize(() => {
+        expect(() => service.initialize(() => { })).toThrowError('SignalBucket already initialized, initialize should only be called once');
+        done();
+      });
     });
 
     it('should call the supplied complete() function after initialization is complete, sync PersistenceProviders', (done) => {
