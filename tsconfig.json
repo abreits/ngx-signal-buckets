@@ -11,8 +11,8 @@
     "noFallthroughCasesInSwitch": true,
     "skipLibCheck": true,
     "paths": {
-      "ngx-simple-serializer": [
-        "./dist/ngx-simple-serializer"
+      "ngx-signal-buckets": [
+        "./dist/ngx-signal-buckets"
       ]
     },
     "esModuleInterop": true,

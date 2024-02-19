@@ -4,6 +4,8 @@ A lightweight implementation for Signal persistance in [Angular](https://angular
 
 This library may be useful if you want to persist Signal values between sessions, but don't want the complexity of a store like [ngrx](https://ngrx.io/).
 
+It allows you to write your own persistence providers with a minimum amount of code.
+
 It defaults to persisting Signals to localStorage and  has built-in support for sessionStorage. You can also write your own persistence provider in a few lines of code by implementing the SignalProvider interface. It supports both synchronous and asynchronous persistence.
 
 For the latest changes and the current version see the [Change log](./CHANGELOG.md).
