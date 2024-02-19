@@ -5,7 +5,7 @@
     "@angular/common": "^17.1.0",
     "@angular/core": "^17.1.0",
     "mutative": "^1.0.3",
-    "ngx-simple-serializer": ">0.0.1",
+    "ngx-simple-serializer": ">1.0.0",
     "rxjs": ">7.0.0"
   },
   "dependencies": {
