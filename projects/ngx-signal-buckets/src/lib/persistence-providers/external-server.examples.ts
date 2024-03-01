@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, OnDestroy } from '@angular/core';
+import { Injectable } from '@angular/core';
 
-import { Observable, switchMap, from, Subject, map, Subscription, first, mergeMap } from 'rxjs';
+import { Observable, switchMap, from, map, first, mergeMap } from 'rxjs';
 import { webSocket } from 'rxjs/webSocket';
 
 import { PersistenceProvider, SignalIdValue } from '../types';
@@ -40,7 +40,7 @@ type WebSocketResult = {
 
 // example for a persistence provider using a websocket to store and retrieve updates
 @Injectable({ providedIn: 'root' })
-export class WebSocketPersistence implements PersistenceProvider, OnDestroy {
+export class WebSocketPersistence implements PersistenceProvider {
   private webSocket = webSocket<WebSocketResult>({
     url: 'wss://websocket.url',
     serializer: serialize,
@@ -50,18 +50,6 @@ export class WebSocketPersistence implements PersistenceProvider, OnDestroy {
 
   private authenticate() {
     this.webSocket.next({ type: 'authentication', content: 'authentication credentials (bearer token, username/password etc.)' });
-  }
-
-  private subscription: Subscription;
-
-  constructor(
-    protected httpClient: HttpClient
-  ) {
-    this.subscription = this.sendSignal$.subscribe(serializedSignal => this.webSocket.next({ type: 'persistedSignal', content: serializedSignal }));
-  }
-
-  ngOnDestroy(): void {
-    this.subscription.unsubscribe();
   }
 
   initialize(ids: Iterable<string>): Observable<SignalIdValue> {
@@ -75,7 +63,9 @@ export class WebSocketPersistence implements PersistenceProvider, OnDestroy {
     );
   }
 
-  sendSignal$ = new Subject<SignalIdValue>;
+  sendSignal(idValue: SignalIdValue) {
+    this.webSocket.next({ type: 'persistedSignal', content: idValue });
+  }
 
   receiveSignal$ = this.webSocket.multiplex(
     () => ({ subscribe: 'persistedSignal' }),

@@ -1,6 +1,6 @@
 {
   "name": "ngx-signal-buckets",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "peerDependencies": {
     "@angular/common": "^17.1.0",
     "@angular/core": "^17.1.0",

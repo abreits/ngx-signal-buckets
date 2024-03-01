@@ -1,5 +1,5 @@
 import { Type } from '@angular/core';
-import { Observable, Subject } from 'rxjs';
+import { Observable } from 'rxjs';
 
 export type SignalIdValue = { id: string, value: any };
 
@@ -7,24 +7,33 @@ export type PersistedSignalOptions = { id: string, persistenceProvider?: Type<Pe
 
 export interface PersistenceProvider {
   /**
-   * Return serialized values of the passed ids, if they were persisted, only needs to be called once.
+   * The SignalBucket calls this method once to retrieve the currently persisted values of the associated signals, if they exist.
+   * 
+   * It should return only the values of the passed ids that have been persisted.
    */
   initialize(ids: Iterable<string>): Observable<SignalIdValue>;
 
   /**
-   * Persist updated serialized signal value
-   * - update the signal immediately if the method does not return anything
-   * - update the signal after the Observable returns the persisted serialized value
+   * Persist updated signal value.
+   * 
+   * If this method exists, the signalBucket calls this method each time the value of a persisted Signal changes.
+   * - the SignalBucket updates the associated signal immediately if the method does not return anything
+   * - the SignalBucket updatess the associated signal after the Observable returns the persisted serialized value
    */
   persistValue?(value: SignalIdValue): Observable<string> | void;
 
   /**
-   * Receive serialized signal values from an external source (e.g. a websocket)
+   * Receive associated signal values from an external source (e.g. a websocket).
+   * 
+   * If this Observable exists, the SignalBucket updates any associated signal values received from this observable
    */
   receiveSignal$?: Observable<SignalIdValue>;
 
   /**
-   * Send updated serialized signal values to an external destination (e.g. a websocket)
+   * Send updated Signal values to an external destination (e.g. a websocket)
+   * 
+   * If this method exists, the signalBucket calls this method each time the value of a persisted Signal changes
+   * - the signalBucket does not change the value of the associated signal
    */
-  sendSignal$?: Subject<SignalIdValue>;
+  sendSignal?(idValue: SignalIdValue): void;
 }

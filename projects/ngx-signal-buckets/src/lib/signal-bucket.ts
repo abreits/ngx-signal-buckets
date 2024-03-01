@@ -136,6 +136,8 @@ export class SignalBucket {
         signalSetFn(signalNode, value);
       }
     }
-    persistenceProvider.sendSignal$?.next({ id, value });
+    if(persistenceProvider.sendSignal) {
+      persistenceProvider.sendSignal({ id, value });
+    } 
   }
 }

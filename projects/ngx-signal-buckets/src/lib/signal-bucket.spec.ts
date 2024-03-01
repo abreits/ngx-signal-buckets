@@ -271,10 +271,9 @@ describe('SignalBucket', () => {
 
     it('should send updates to sendSignal$ if it exists', () => {
       const persistenceProvider = TestBed.inject(EmptyStoragePersistence) as PersistenceProvider;
-      persistenceProvider.sendSignal$ = new Subject();
-      persistenceProvider.sendSignal$.subscribe(serializedSignal => {
+      persistenceProvider.sendSignal = serializedSignal => {
         expect(serializedSignal).toEqual({ id: 'property1Id', value: 'secondValue' });
-      });
+      };
 
       const service = TestBed.inject(EmptySignalBucket);
 
