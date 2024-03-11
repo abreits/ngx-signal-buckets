@@ -4,11 +4,11 @@
   "peerDependencies": {
     "@angular/common": "^17.1.0",
     "@angular/core": "^17.1.0",
+    "mutative": ">=1.0.3",
+    "ngx-simple-serializer": ">=1.0.0",
     "rxjs": ">=7.0.0"
   },
   "dependencies": {
-    "mutative": ">=1.0.3",
-    "ngx-simple-serializer": ">=1.0.0",
     "tslib": "^2.3.0"
   },
   "sideEffects": false
